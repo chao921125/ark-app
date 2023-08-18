@@ -1,0 +1,21 @@
+<div class="container">
+    <text class="title">
+        {{ $t('strings.hello') }} {{ title }}
+    </text>
+    <list class="tag-list">
+        <list-item for="{{ todayList }}" class="todo-list-item">
+            <div class="todo-item flex-row">
+                <image class="todo-image" src="{{ $item.checkBtn }}" onclick="completeEvent({{ $item.id }})"></image>
+                <div class="todo-text-wrapper">
+                    <div class="todo-name-mark">
+                        <text class="todo-name {{ $item.color }}">{{ $item.event }}</text>
+                        <text class="todo-mark {{ $item.tag }} {{ $item.showTag }}"></text>
+                    </div>
+                    <text class="todo-time">{{ $item.time }}</text>
+                </div>
+                <image class="todo-image" src="/common/delete.png" onclick="deleteEvent({{ $item.id }})"
+                       show="{{ $item.completeState }}"></image>
+            </div>
+        </list-item>
+    </list>
+</div>

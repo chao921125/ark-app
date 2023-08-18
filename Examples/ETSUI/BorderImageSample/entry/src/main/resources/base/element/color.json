@@ -1,0 +1,28 @@
+{
+  "color": [
+    {
+      "name": "start_window_background",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "navigation_font",
+      "value": "#18181A"
+    },
+    {
+      "name": "column_background",
+      "value": "#F1F3F5"
+    },
+    {
+      "name": "target_text",
+      "value": "#000000"
+    },
+    {
+      "name": "text_font",
+      "value": "#000000"
+    },
+    {
+      "name": "text_background",
+      "value": "#99000000"
+    }
+  ]
+}

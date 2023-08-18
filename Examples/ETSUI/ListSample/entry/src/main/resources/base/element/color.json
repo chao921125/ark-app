@@ -1,0 +1,56 @@
+{
+  "color": [
+    {
+      "name": "start_window_background",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "list_item_title",
+      "value": "#FF182431"
+    },
+    {
+      "name": "list_item_sub_title",
+      "value": "#99182431"
+    },
+    {
+      "name": "search_placeholder",
+      "value": "#99182431"
+    },
+    {
+      "name": "navigation_title",
+      "value": "#FF000000"
+    },
+    {
+      "name": "search_bar_background",
+      "value": "#0C000000"
+    },
+    {
+      "name": "tab_text_normal",
+      "value": "#182431"
+    },
+    {
+      "name": "tab_text_activated",
+      "value": "#007DFF"
+    },
+    {
+      "name": "theme_background",
+      "value": "#F2FAFAFA"
+    },
+    {
+      "name": "tab_bar_background",
+      "value": "#F1F3F5"
+    },
+    {
+      "name": "detail_page_background",
+      "value": "#F1F3F5"
+    },
+    {
+      "name": "list_divider",
+      "value": "#0D000000"
+    },
+    {
+      "name": "list_content_background",
+      "value": "#FFFFFF"
+    }
+  ]
+}

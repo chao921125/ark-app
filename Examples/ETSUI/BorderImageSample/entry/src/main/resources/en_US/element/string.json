@@ -1,0 +1,36 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "module description"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "description"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "label"
+    },
+    {
+      "name": "navigation_text",
+      "value": "Image stretching and filling"
+    },
+    {
+      "name": "target_component",
+      "value": "Target component"
+    },
+    {
+      "name": "preview_hint_text",
+      "value": "Sliding slider can adjust slice parameter size (border cutting width)"
+    },
+    {
+      "name": "source_image",
+      "value": "Source image"
+    },
+    {
+      "name": "hint_text",
+      "value": "Sliding slider can adjust slice parameter size (border cutting width)"
+    }
+  ]
+}

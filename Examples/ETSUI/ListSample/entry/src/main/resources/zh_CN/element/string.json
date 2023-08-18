@@ -1,0 +1,44 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "该模板实现了列表页的功能"
+    },
+    {
+      "name": "ability_desc",
+      "value": "该Ability加载主Page的内容"
+    },
+    {
+      "name": "ability_label",
+      "value": "List Ability"
+    },
+    {
+      "name": "tab_title",
+      "value": "操作"
+    },
+    {
+      "name": "list_item_title",
+      "value": "双行列表"
+    },
+    {
+      "name": "list_item_sub_title",
+      "value": "辅助文本"
+    },
+    {
+      "name": "list_item_summary",
+      "value": "右侧文本"
+    },
+    {
+      "name": "page_title",
+      "value": "标题"
+    },
+    {
+      "name": "detail_page_list_title",
+      "value": "标题"
+    },
+    {
+      "name": "detail_default_title",
+      "value": "默认标题"
+    }
+  ]
+}

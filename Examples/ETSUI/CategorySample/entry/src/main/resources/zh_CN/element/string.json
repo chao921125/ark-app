@@ -1,0 +1,40 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "该模板实现了分类浏览的功能"
+    },
+    {
+      "name": "ability_desc",
+      "value": "该Ability加载显示主Page的内容"
+    },
+    {
+      "name": "ability_label",
+      "value": "Category Ability"
+    },
+    {
+      "name": "list_item_text",
+      "value": "分类%d"
+    },
+    {
+      "name": "tab_text",
+      "value": "页签"
+    },
+    {
+      "name": "detail_list_item_text",
+      "value": "子标题"
+    },
+    {
+      "name": "grid_item_text",
+      "value": "子类"
+    },
+    {
+      "name": "navigation_sub_title",
+      "value": "子标题"
+    },
+    {
+      "name": "navigation_title",
+      "value": "分类"
+    }
+  ]
+}

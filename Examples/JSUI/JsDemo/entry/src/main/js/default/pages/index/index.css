@@ -1,0 +1,113 @@
+.container {
+    flex-direction: column;
+    justify-content: center;
+    background-color: black;
+    align-items: center;
+}
+
+.title {
+    font-size: 42px;
+    font-weight: 600;
+    color: #ccc;
+    margin-top: 36px;
+    margin-bottom: 36px;
+    margin-left: 24px;
+}
+
+.tag-list {
+    width: 100%;
+    height: 100%;
+}
+
+.flex-row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.todo-list-item {
+    margin: 5px 16px;
+    width: 100%;
+}
+
+.todo-name {
+    font-size: 32px;
+    color: white;
+    height: 100px;
+    margin-right: 5px;
+}
+
+.todo-name-mark {
+    width: 100%;
+    height: 100%;
+    margin: 10px 0px;
+    align-items: center;
+}
+
+.todo-item {
+    height: 120px;
+    width: 100%;
+    border-radius: 5px;
+    align-items: center;
+}
+
+.todo-time {
+    font-size: 32px;
+    width: 100%;
+    height: 100%;
+    text-align: left;
+    color: gray;
+    margin-top: 2px;
+}
+
+.todo-mark {
+    width: 18px;
+    height: 18px;
+    margin-left: 16px;
+    border-radius: 50px;
+    background-color: lightslategrey;
+}
+
+.urgent {
+    background-color: firebrick;
+}
+
+.senior {
+    background-color: gold;
+}
+
+.middle {
+    background-color: mediumaquamarine;
+}
+
+.low {
+    background-color: yellow;
+}
+
+.text-default {
+    color: white;
+}
+
+.text-gray {
+    color: gray;
+}
+
+.hide {
+    display: none;
+}
+.show {
+    display: flex;
+}
+
+.todo-image {
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
+    margin-top: 3px;
+}
+
+.todo-text-wrapper {
+    height: 100%;
+    flex-grow: 1;
+    margin: 0px 32px;
+    flex-direction: column;
+}

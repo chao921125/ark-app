@@ -1,0 +1,40 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "This module template implements Category functions."
+    },
+    {
+      "name": "ability_desc",
+      "value": "This ability loads CategoryPage."
+    },
+    {
+      "name": "ability_label",
+      "value": "Category Ability"
+    },
+    {
+      "name": "list_item_text",
+      "value": "Category %d"
+    },
+    {
+      "name": "tab_text",
+      "value": "Tab"
+    },
+    {
+      "name": "detail_list_item_text",
+      "value": "Subtype"
+    },
+    {
+      "name": "grid_item_text",
+      "value": "Subclass"
+    },
+    {
+      "name": "navigation_sub_title",
+      "value": "Sub title"
+    },
+    {
+      "name": "navigation_title",
+      "value": "Category"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "string": [
+    {
+    "name": "module_desc",
+    "value": "该模板实现了网格页的功能"
+    },
+    {
+      "name": "ability_desc",
+      "value": "该Ability加载显示主Page的内容"
+    },
+    {
+      "name": "ability_label",
+      "value": "Grid Ability"
+    },
+    {
+      "name": "grid_content_text",
+      "value": "子标题"
+    },
+    {
+      "name": "grid_item_text",
+      "value": "选项"
+    },
+    {
+      "name": "navigation_title",
+      "value": "网格页"
+    }
+  ]
+}

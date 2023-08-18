@@ -1,0 +1,6 @@
+{
+  "src": [
+    "pages/ListPage",
+    "pages/DetailPage"
+  ]
+}

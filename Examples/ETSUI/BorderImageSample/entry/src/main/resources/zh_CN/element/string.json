@@ -1,0 +1,36 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "模块描述"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "description"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "label"
+    },
+    {
+      "name": "navigation_text",
+      "value": "图片拉伸及填充"
+    },
+    {
+      "name": "target_component",
+      "value": "目标组件"
+    },
+    {
+      "name": "preview_hint_text",
+      "value": "滑动滑竿可以调整slice参数大小 (边框切割宽度)"
+    },
+    {
+      "name": "source_image",
+      "value": "源图片"
+    },
+    {
+      "name": "hint_text",
+      "value": "滑动滑竿可以调整slice参数大小 (边框切割宽度)"
+    }
+  ]
+}
