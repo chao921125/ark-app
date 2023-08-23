@@ -1,0 +1,32 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "模块描述"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "description"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "label"
+    },
+    {
+      "name": "title",
+      "value": "设置图片颜色"
+    },
+    {
+      "name": "rgba_text",
+      "value": "请输入RGBA矩阵数值:"
+    },
+    {
+      "name": "explain_text",
+      "value": "可修改ColorFilter矩阵数值后，点击底部按钮修改图片颜色"
+    },
+    {
+      "name": "button_text",
+      "value": "点击设置图片颜色"
+    }
+  ]
+}

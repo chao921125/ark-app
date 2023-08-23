@@ -1,0 +1,32 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "module description"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "description"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "label"
+    },
+    {
+      "name": "title",
+      "value": "Set picture color"
+    },
+    {
+      "name": "rgba_text",
+      "value": "Please enter RGBA matrix value:"
+    },
+    {
+      "name": "explain_text",
+      "value": "After modifying the value of ColorFilter matrix, click the button at the bottom to modify the color of the picture"
+    },
+    {
+      "name": "button_text",
+      "value": "Click to set the picture color"
+    }
+  ]
+}

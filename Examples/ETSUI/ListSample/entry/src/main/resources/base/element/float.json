@@ -1,0 +1,168 @@
+{
+  "float": [
+    {
+      "name": "navigation_height",
+      "value": "41vp"
+    },
+    {
+      "name": "title_size",
+      "value": "30fp"
+    },
+    {
+      "name": "image_star_height",
+      "value": "24vp"
+    },
+    {
+      "name": "image_star_width",
+      "value": "24vp"
+    },
+    {
+      "name": "list_item_title",
+      "value": "16fp"
+    },
+    {
+      "name": "list_item_sub_title",
+      "value": "14vp"
+    },
+    {
+      "name": "list_item_summary",
+      "value": "14fp"
+    },
+    {
+      "name": "list_summary_margin_right",
+      "value": "4vp"
+    },
+    {
+      "name": "image_right_arrow_width",
+      "value": "12vp"
+    },
+    {
+      "name": "image_right_arrow_height",
+      "value": "24vp"
+    },
+    {
+      "name": "tab_text_margin_top",
+      "value": "4vp"
+    },
+    {
+      "name": "search_text_size",
+      "value": "16fp"
+    },
+    {
+      "name": "search_radius",
+      "value": "20vp"
+    },
+    {
+      "name": "search_margin_top",
+      "value": "8vp"
+    },
+    {
+      "name": "search_margin_bottom",
+      "value": "8vp"
+    },
+    {
+      "name": "search_margin_left",
+      "value": "16vp"
+    },
+    {
+      "name": "search_margin_right",
+      "value": "16vp"
+    },
+    {
+      "name": "navigation_margin_top",
+      "value": "56vp"
+    },
+    {
+      "name": "navigation_margin_left",
+      "value": "24vp"
+    },
+    {
+      "name": "navigation_margin_right",
+      "value": "24vp"
+    },
+    {
+      "name": "navigation_margin_bottom",
+      "value": "8vp"
+    },
+    {
+      "name": "list_image_margin_left",
+      "value": "5vp"
+    },
+    {
+      "name": "list_image_margin_right",
+      "value": "15vp"
+    },
+    {
+      "name": "sub_title_margin_top",
+      "value": "5vp"
+    },
+    {
+      "name": "tab_text_size",
+      "value": "10fp"
+    },
+    {
+      "name": "list_divider_start_margin",
+      "value": "45vp"
+    },
+    {
+      "name": "list_divider_end_margin",
+      "value": "8vp"
+    },
+    {
+      "name": "tab_content_padding_left",
+      "value": "18vp"
+    },
+    {
+      "name": "tab_content_padding_right",
+      "value": "18vp"
+    },
+    {
+      "name": "tab_margin_top",
+      "value": "8vp"
+    },
+    {
+      "name": "tab_bar_height",
+      "value": "56vp"
+    },
+    {
+      "name": "divider_height",
+      "value": "0.5vp"
+    },
+    {
+      "name": "list_item_height",
+      "value": "60vp"
+    },
+    {
+      "name": "search_height",
+      "value": "40vp"
+    },
+    {
+      "name": "detail_navigation_title",
+      "value": "20fp"
+    },
+    {
+      "name": "detail_navigation_height",
+      "value": "56vp"
+    },
+    {
+      "name": "detail_list_item_height",
+      "value": "48vp"
+    },
+    {
+      "name": "detail_list_padding_vertical",
+      "value": "4vp"
+    },
+    {
+      "name": "detail_list_padding_horizontal",
+      "value": "12vp"
+    },
+    {
+      "name": "list_margin_top",
+      "value": "8vp"
+    },
+    {
+      "name": "list_radius",
+      "value": "24vp"
+    }
+  ]
+}

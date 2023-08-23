@@ -1,0 +1,12 @@
+{
+  "string": [
+    {
+      "name": "app_name",
+      "value": "Triangle"
+    },
+    {
+      "name": "mainability_description",
+      "value": "Draw triangles using OpenGL ES"
+    }
+  ]
+}

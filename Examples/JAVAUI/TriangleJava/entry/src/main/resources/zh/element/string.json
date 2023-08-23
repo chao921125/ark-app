@@ -1,0 +1,12 @@
+{
+  "string": [
+    {
+      "name": "app_name",
+      "value": "三角形"
+    },
+    {
+      "name": "mainability_description",
+      "value": "使用 OpenGL_ES 绘制三角形"
+    }
+  ]
+}
