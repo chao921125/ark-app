@@ -1,7 +1,8 @@
 {
-  "name": "ark",
+  "name": "ark-app",
+  "displayName": "CC NET",
   "version": "1.0.0",
-  "description": "Please describe the basic information.",
+  "description": "cc app, run in all demo and com",
   "main": "",
   "author": "",
   "license": "",
