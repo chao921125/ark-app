@@ -1,0 +1,18 @@
+{
+  "app" : {
+    "bundleName" : "com.cc.net",
+    "versionCode" : 1000000,
+    "versionName" : "1.0.0.1",
+    "patchVersionCode" : 1000000,
+    "patchVersionName" : "1.0.0.1"
+  },
+  "module" : {
+    "name" : "entry",
+    "type" : "patch",
+    "deviceTypes" : [
+      "default",
+      "tablet"
+    ],
+    "originalModuleHash" : "11223344556677889900"
+  }
+}
