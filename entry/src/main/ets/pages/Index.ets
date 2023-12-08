@@ -10,7 +10,7 @@ struct Index {
           .fontSize(50)
           .fontWeight(FontWeight.Bold)
         Button() {
-          Text("Click").fontSize(30).fontWeight(FontWeight.Bold)
+          Text("Click Your").fontSize(30).fontWeight(FontWeight.Bold)
         }.type(ButtonType.Capsule).margin({
           top: 20
         }).backgroundColor("#00ff12").width("30%").height("5%")

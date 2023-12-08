@@ -2,7 +2,11 @@
   "string": [
     {
       "name": "app_name",
-      "value": "Ark"
+      "value": "CCNET"
+    },
+    {
+      "name": "description_application",
+      "value": "Demo"
     }
   ]
 }
