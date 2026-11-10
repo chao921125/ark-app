@@ -1,0 +1,40 @@
+{
+  "color": [
+    {
+      "name": "start_window_background",
+      "value": "#121212"
+    },
+    {
+      "name": "theme_primary",
+      "value": "#2BB890"
+    },
+    {
+      "name": "text_primary",
+      "value": "#E5E5E5"
+    },
+    {
+      "name": "text_secondary",
+      "value": "#999999"
+    },
+    {
+      "name": "bg_page",
+      "value": "#121212"
+    },
+    {
+      "name": "bg_card",
+      "value": "#1E1E1E"
+    },
+    {
+      "name": "divider",
+      "value": "#2C2C2C"
+    },
+    {
+      "name": "btn_dark_bg",
+      "value": "#EDEDED"
+    },
+    {
+      "name": "btn_dark_fg",
+      "value": "#121212"
+    }
+  ]
+}

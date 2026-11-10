@@ -9,6 +9,27 @@
 /.clang-format
 /.clang-tidy
 **/.test
+.DS_Store
+
+# ---------- 签名材料与凭据（绝不入库） ----------
+# 说明：这些是「应用身份」的凭据，泄露后他人可冒用本应用签名/接入 AGC 服务。
+# 真正的密钥库由 DevEco 管理在 ~/.ohos/config/ 下，仓库内不需要留副本。
+# 仅锚定仓库根目录，避免误伤 Examples/ 模板自带的演示证书。
+/*.p12
+/*.p7b
+/*.cer
+/*.csr
+/*.keystore
+/*.jks
+# AppGallery Connect 配置（含 client_secret / api_key），需在 AGC 控制台重新生成
+/agconnect-services.json
+
+# ---------- 工具与预览器缓存 ----------
+/.codegenie/            # 外部工具工作区（自带 .git，会形成嵌套仓库）
+/entry/.preview/        # DevEco 预览器构建缓存
+/.hvigor/
+**/.preview/
+
 
 # ---------- Claude Code (Anthropic) ----------
 # 会话/状态/缓存（个人数据，不入库）

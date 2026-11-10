@@ -1,10 +1,10 @@
 {
   "name": "entry",
   "version": "1.0.0",
-  "description": "Please describe the basic information.",
+  "description": "CCMusic HarmonyOS entry module",
   "main": "",
   "author": "",
-  "license": "",
-  "dependencies": {}
+  "license": "Apache-2.0",
+  "dependencies": {},
+  "devDependencies": {}
 }
-

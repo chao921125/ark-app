@@ -1,12 +1,41 @@
 {
   "app": {
-    "signingConfigs": [],
-    "compileSdkVersion": 9,
-    "compatibleSdkVersion": 9,
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "/Users/huangchao/.ohos/config/default_ccnmusic-hm_p5AEDAffkn1TfNTug8lOBnLCea9h3YSrzVT3UEdp3B8=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001BC875AD656D186F6C31BC8DBBD7F94D5965CFA734FF7ABA4F9BDA13F56E4856B8CF635C36BCE941",
+          "profile": "/Users/huangchao/.ohos/config/default_ccnmusic-hm_p5AEDAffkn1TfNTug8lOBnLCea9h3YSrzVT3UEdp3B8=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "/Users/huangchao/.ohos/config/default_ccnmusic-hm_p5AEDAffkn1TfNTug8lOBnLCea9h3YSrzVT3UEdp3B8=.p12",
+          "storePassword": "0000001BB38CF167583D80FF13DB5ABCF5581D2D520B2DD8EF296AAC07A052696CF9AB87BE7633081D4445"
+        }
+      }
+    ],
     "products": [
       {
         "name": "default",
         "signingConfig": "default",
+        "targetSdkVersion": "26.0.0",
+        "compatibleSdkVersion": "6.0.0(20)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug"
+      },
+      {
+        "name": "release"
       }
     ]
   },

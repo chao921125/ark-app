@@ -1,9 +1,0 @@
-{
-  "src": [
-    "pages/LoginPage",
-    "pages/MinePage",
-    "pages/RegistrationSuccessPage",
-    "pages/PrivacyPage",
-    "pages/CustomerServicePage"
-  ]
-}

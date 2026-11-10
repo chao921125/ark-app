@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>lx user api host</title>
+</head>
+<body>
+<script>
+/**
+ * 洛雪自定义源脚本宿主（ArkWeb 沙箱页）— 完整对齐上游 user-api-preload.js（v1.8.4）
+ * - globalThis.lx：EVENT_NAMES / request / send / on / utils(buffer, crypto) / currentScriptInfo
+ *   version='2.0.0'、env='mobile'；send/on 返回 Promise；inited/updateAlert 各仅一次
+ * - utils.crypto：md5 / randomBytes / aesEncrypt(aes-128-cbc PKCS7、aes-128-ecb) / rsaEncrypt(RSA/ECB/NoPadding)
+ *   纯 JS 实现（ArkWeb 无 native 桥可用；BigInt 用于 RSA modPow）
+ * - lx.request 经宿主 ArkTS http 代发（绕开 CORS），结果经 lxHost 桥回注
+ * - handleInit：sources 按 allSources 过滤归一化（type=='music'，actions/qualitys 按内置列表）
+ * - handleRequest：musicUrl/pic 结果必须为 http(s) URL 且 ≤2048；lyric 经 verifyLyricInfo 校验
+ * - 与 ArkTS 协议（lxHost.dispatch(kind, id, data, data2)）：
+ *     event         id=runId  data=事件名              脚本调 lx.on 时上报
+ *     send          id=runId  data=事件名 data2=payload 脚本调 lx.send 时上报（inited/updateAlert）
+ *     request       id=callId data=参数 JSON           脚本调 lx.request，宿主代发
+ *     handlerResult id=callId data='1'/'0' data2=结果JSON 请求处理器返回
+ */
+(function () {
+  'use strict'
+
+  var ENC = new TextEncoder()
+  var DEC = new TextDecoder('utf-8')
+
+  // ===== 编解码 =====
+  var HEX_CHARS = '0123456789abcdef'
+  function bytesToHex(bytes) {
+    var out = ''
+    for (var i = 0; i < bytes.length; i++) {
+      out += HEX_CHARS.charAt((bytes[i] >> 4) & 0x0f) + HEX_CHARS.charAt(bytes[i] & 0x0f)
+    }
+    return out
+  }
+  function hexToBytes(hex) {
+    var len = hex.length >> 1
+    var out = new Uint8Array(len)
+    for (var i = 0; i < len; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16)
+    return out
+  }
+  function bytesToBase64(bytes) {
+    var bin = ''
+    var chunk = 0x8000
+    for (var i = 0; i < bytes.length; i += chunk) {
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + chunk, bytes.length)))
+    }
+    return btoa(bin)
+  }
+  function base64ToBytes(b64) {
+    var bin = atob(b64)
+    var out = new Uint8Array(bin.length)
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
+    return out
+  }
+  function latin1ToBytes(str) {
+    var out = new Uint8Array(str.length)
+    for (var i = 0; i < str.length; i++) out[i] = str.charCodeAt(i) & 0xff
+    return out
+  }
+  function bytesToLatin1(bytes) {
+    var out = ''
+    var chunk = 0x8000
+    for (var i = 0; i < bytes.length; i += chunk) {
+      out += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + chunk, bytes.length)))
+    }
+    return out
+  }
+
+  // ===== Buffer 子集 polyfill（挂 window.Buffer 提升兼容性）=====
+  function bufToString(buf, format) {
+    if (buf == undefined) return ''
+    var u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf)
+    format = (format || 'utf8').toLowerCase()
+    if (format === 'hex') return bytesToHex(u8)
+    if (format === 'base64') return bytesToBase64(u8)
+    if (format === 'latin1' || format === 'binary') return bytesToLatin1(u8)
+    return DEC.decode(u8)
+  }
+  function normalizeBuf(data, encoding) {
+    if (typeof data === 'string') {
+      encoding = (encoding || 'utf8').toLowerCase()
+      if (encoding === 'base64') return base64ToBytes(data)
+      if (encoding === 'hex') return hexToBytes(data)
+      if (encoding === 'latin1' || encoding === 'binary') return latin1ToBytes(data)
+      return ENC.encode(data)
+    }
+    if (data instanceof Uint8Array) return new Uint8Array(data)
+    if (data instanceof ArrayBuffer) return new Uint8Array(data)
+    if (typeof data.length === 'number') {
+      var out = new Uint8Array(data.length)
+      for (var i = 0; i < data.length; i++) out[i] = data[i] & 0xff
+      return out
+    }
+    throw new TypeError('Buffer.from: unsupported data')
+  }
+  var BufferPoly = {
+    from: function (data, encoding) { return normalizeBuf(data, encoding) },
+    isBuffer: function (b) { return b instanceof Uint8Array },
+    alloc: function (size) { return new Uint8Array(size) },
+    concat: function (list) {
+      var total = 0
+      for (var i = 0; i < list.length; i++) total += list[i].length
+      var out = new Uint8Array(total)
+      var offset = 0
+      for (var j = 0; j < list.length; j++) {
+        out.set(list[j] instanceof Uint8Array ? list[j] : new Uint8Array(list[j]), offset)
+        offset += list[j].length
+      }
+      return out
+    },
+    byteLength: function (data, encoding) { return normalizeBuf(data, encoding).length }
+  }
+  Object.defineProperty(Uint8Array.prototype, 'toString', {
+    value: function (format) { return bufToString(this, format) },
+    writable: true,
+    configurable: true
+  })
+  window.Buffer = BufferPoly
+
+  // ===== 纯 JS md5（RFC 1321；输入 string 或 Uint8Array，输出 hex 小写）=====
+  var MD5_S = []
+  ;(function () {
+    var base = [7, 12, 17, 22, 5, 9, 14, 20, 4, 11, 16, 23, 6, 10, 15, 21]
+    for (var r = 0; r < 4; r++) {
+      for (var i = 0; i < 16; i++) MD5_S.push(base[r * 4 + (i % 4)])
+    }
+  })()
+  var MD5_K = []
+  ;(function () {
+    for (var i = 0; i < 64; i++) MD5_K.push(Math.floor(Math.abs(Math.sin(i + 1)) * 4294967296))
+  })()
+  function md5Bytes(input) {
+    var len = input.length
+    var paddedLen = Math.ceil((len + 9) / 64) * 64
+    var padded = new Uint8Array(paddedLen)
+    padded.set(input)
+    padded[len] = 0x80
+    var bitLen = len * 8
+    for (var li = 0; li < 4; li++) {
+      padded[paddedLen - 8 + li] = (bitLen >>> (8 * li)) & 0xff
+      padded[paddedLen - 4 + li] = 0
+    }
+    var a0 = 0x67452301, b0 = 0xefcdab89, c0 = 0x98badcfe, d0 = 0x10325476
+    var M = new Int32Array(16)
+    for (var off = 0; off < paddedLen; off += 64) {
+      for (var j = 0; j < 16; j++) {
+        M[j] = padded[off + j * 4] | (padded[off + j * 4 + 1] << 8) | (padded[off + j * 4 + 2] << 16) | (padded[off + j * 4 + 3] << 24)
+      }
+      var A = a0, B = b0, C = c0, D = d0
+      for (var s = 0; s < 64; s++) {
+        var r = s >> 4
+        var f, g
+        if (r === 0) { f = (B & C) | (~B & D); g = s }
+        else if (r === 1) { f = (D & B) | (~D & C); g = (5 * s + 1) % 16 }
+        else if (r === 2) { f = B ^ C ^ D; g = (3 * s + 8) % 16 }
+        else { f = C ^ (B | ~D); g = (7 * s) % 16 }
+        var tmp = D
+        D = C
+        C = B
+        var sum = (A + f + MD5_K[s] + M[g]) | 0
+        var sh = MD5_S[s]
+        B = (B + ((sum << sh) | (sum >>> (32 - sh)))) | 0
+        A = tmp
+      }
+      a0 = (a0 + A) | 0
+      b0 = (b0 + B) | 0
+      c0 = (c0 + C) | 0
+      d0 = (d0 + D) | 0
+    }
+    var regs = [a0, b0, c0, d0]
+    var out = new Uint8Array(16)
+    for (var ri = 0; ri < 4; ri++) {
+      out[ri * 4] = regs[ri] & 0xff
+      out[ri * 4 + 1] = (regs[ri] >>> 8) & 0xff
+      out[ri * 4 + 2] = (regs[ri] >>> 16) & 0xff
+      out[ri * 4 + 3] = (regs[ri] >>> 24) & 0xff
+    }
+    return out
+  }
+  function toU8(data) {
+    if (typeof data === 'string') return ENC.encode(data)
+    if (data instanceof Uint8Array) return data
+    return normalizeBuf(data)
+  }
+
+  // ===== 纯 JS AES-128（CBC PKCS7 / ECB），对齐上游 native AES 语义 =====
+  var AES_SBOX = [
+    0x63,0x7c,0x77,0x7b,0xf2,0x6b,0x6f,0xc5,0x30,0x01,0x67,0x2b,0xfe,0xd7,0xab,0x76,
+    0xca,0x82,0xc9,0x7d,0xfa,0x59,0x47,0xf0,0xad,0xd4,0xa2,0xaf,0x9c,0xa4,0x72,0xc0,
+    0xb7,0xfd,0x93,0x26,0x36,0x3f,0xf7,0xcc,0x34,0xa5,0xe5,0xf1,0x71,0xd8,0x31,0x15,
+    0x04,0xc7,0x23,0xc3,0x18,0x96,0x05,0x9a,0x07,0x12,0x80,0xe2,0xeb,0x27,0xb2,0x75,
+    0x09,0x83,0x2c,0x1a,0x1b,0x6e,0x5a,0xa0,0x52,0x3b,0xd6,0xb3,0x29,0xe3,0x2f,0x84,
+    0x53,0xd1,0x00,0xed,0x20,0xfc,0xb1,0x5b,0x6a,0xcb,0xbe,0x39,0x4a,0x4c,0x58,0xcf,
+    0xd0,0xef,0xaa,0xfb,0x43,0x4d,0x33,0x85,0x45,0xf9,0x02,0x7f,0x50,0x3c,0x9f,0xa8,
+    0x51,0xa3,0x40,0x8f,0x92,0x9d,0x38,0xf5,0xbc,0xb6,0xda,0x21,0x10,0xff,0xf3,0xd2,
+    0xcd,0x0c,0x13,0xec,0x5f,0x97,0x44,0x17,0xc4,0xa7,0x7e,0x3d,0x64,0x5d,0x19,0x73,
+    0x60,0x81,0x4f,0xdc,0x22,0x2a,0x90,0x88,0x46,0xee,0xb8,0x14,0xde,0x5e,0x0b,0xdb,
+    0xe0,0x32,0x3a,0x0a,0x49,0x06,0x24,0x5c,0xc2,0xd3,0xac,0x62,0x91,0x95,0xe4,0x79,
+    0xe7,0xc8,0x37,0x6d,0x8d,0xd5,0x4e,0xa9,0x6c,0x56,0xf4,0xea,0x65,0x7a,0xae,0x08,
+    0xba,0x78,0x25,0x2e,0x1c,0xa6,0xb4,0xc6,0xe8,0xdd,0x74,0x1f,0x4b,0xbd,0x8b,0x8a,
+    0x70,0x3e,0xb5,0x66,0x48,0x03,0xf6,0x0e,0x61,0x35,0x57,0xb9,0x86,0xc1,0x1d,0x9e,
+    0xe1,0xf8,0x98,0x11,0x69,0xd9,0x8e,0x94,0x9b,0x1e,0x87,0xe9,0xce,0x55,0x28,0xdf,
+    0x8c,0xa1,0x89,0x0d,0xbf,0xe6,0x42,0x68,0x41,0x99,0x2d,0x0f,0xb0,0x54,0xbb,0x16]
+  var AES_INV_SBOX = new Array(256)
+  ;(function () {
+    for (var i = 0; i < 256; i++) AES_INV_SBOX[AES_SBOX[i]] = i
+  })()
+  function xtime(a) {
+    return ((a << 1) ^ ((a & 0x80) ? 0x1b : 0)) & 0xff
+  }
+  function aesKeyExpansion(keyBytes) {
+    if (keyBytes.length !== 16) throw new Error('aes key must be 16 bytes (aes-128)')
+    var w = new Array(44)
+    for (var i = 0; i < 4; i++) {
+      w[i] = [keyBytes[i * 4], keyBytes[i * 4 + 1], keyBytes[i * 4 + 2], keyBytes[i * 4 + 3]]
+    }
+    var rcon = 1
+    for (var k = 4; k < 44; k++) {
+      var t = w[k - 1].slice()
+      if (k % 4 === 0) {
+        var tmp = t[0]
+        t[0] = AES_SBOX[t[1]] ^ rcon
+        t[1] = AES_SBOX[t[2]]
+        t[2] = AES_SBOX[t[3]]
+        t[3] = AES_SBOX[tmp]
+        rcon = xtime(rcon)
+      }
+      w[k] = [w[k - 4][0] ^ t[0], w[k - 4][1] ^ t[1], w[k - 4][2] ^ t[2], w[k - 4][3] ^ t[3]]
+    }
+    return w
+  }
+  function aesEncryptBlock(block, w) {
+    var s = block.slice()
+    var t = new Array(16)
+    for (var round = 0; round < 10; round++) {
+      for (var i = 0; i < 16; i++) s[i] = AES_SBOX[s[i]]
+      // shift rows
+      var b1 = s[1]; s[1] = s[5]; s[5] = s[9]; s[9] = s[13]; s[13] = b1
+      var b2 = s[2]; s[2] = s[10]; s[10] = b2
+      var b3 = s[3]; s[3] = s[15]; s[15] = s[11]; s[11] = s[7]; s[7] = b3
+      if (round < 9) {
+        for (var c = 0; c < 16; c += 4) {
+          var a0 = s[c], a1 = s[c + 1], a2 = s[c + 2], a3 = s[c + 3]
+          var h = a0 ^ a1 ^ a2 ^ a3
+          t[c] = a0 ^ h ^ xtime(a0 ^ a1)
+          t[c + 1] = a1 ^ h ^ xtime(a1 ^ a2)
+          t[c + 2] = a2 ^ h ^ xtime(a2 ^ a3)
+          t[c + 3] = a3 ^ h ^ xtime(a3 ^ a0)
+        }
+        for (var j = 0; j < 16; j++) s[j] = t[j] ^ w[round * 4 + (j >> 2)][j & 3]
+      } else {
+        for (var k = 0; k < 16; k++) s[k] = s[k] ^ w[40 + (k >> 2)][k & 3]
+      }
+    }
+    return s
+  }
+  function pkcs7Pad(data) {
+    var padLen = 16 - (data.length % 16)
+    var out = new Uint8Array(data.length + padLen)
+    out.set(data)
+    for (var i = data.length; i < out.length; i++) out[i] = padLen
+    return out
+  }
+  function aesEncryptRaw(data, keyBytes, mode, iv) {
+    var w = aesKeyExpansion(keyBytes)
+    var padded = pkcs7Pad(data)
+    var out = new Uint8Array(padded.length)
+    if (mode === 'aes-128-ecb') {
+      for (var off = 0; off < padded.length; off += 16) {
+        out.set(aesEncryptBlock(Array.prototype.slice.call(padded.subarray(off, off + 16)), w), off)
+      }
+      return out
+    }
+    // CBC
+    if (iv == undefined || iv.length !== 16) throw new Error('aes-128-cbc requires a 16 byte iv')
+    var prev = Array.prototype.slice.call(iv)
+    for (var o = 0; o < padded.length; o += 16) {
+      var block = new Array(16)
+      for (var b = 0; b < 16; b++) block[b] = padded[o + b] ^ prev[b]
+      var enc = aesEncryptBlock(block, w)
+      out.set(enc, o)
+      prev = enc
+    }
+    return out
+  }
+
+  // ===== RSA/ECB/NoPadding（BigInt modPow；key 为去头 PEM 的 SPKI base64 DER）=====
+  function parseRsaPublicKey(pemB64) {
+    var der = base64ToBytes(pemB64.replace(/[\r\n\s]/g, ''))
+    var pos = 0
+    function readLen() {
+      var b = der[pos++]
+      if (b < 0x80) return b
+      var n = b & 0x7f
+      var len = 0
+      for (var i = 0; i < n; i++) len = len * 256 + der[pos++]
+      return len
+    }
+    function skip(tag) {
+      if (der[pos++] !== tag) throw new Error('invalid RSA public key DER')
+      return readLen()
+    }
+    skip(0x30) // SEQUENCE (SubjectPublicKeyInfo)
+    skip(0x30) // SEQUENCE (AlgorithmIdentifier)
+    var algLen = 0
+    // 上一步 readLen 已经消耗；此处需要回退重读——改用显式结构
+    pos = 0
+    pos++ // 0x30
+    var spkiLen = readLen()
+    pos++ // 0x30 (AlgorithmIdentifier)
+    var algIdLen = readLen()
+    pos += algIdLen // 跳过 OID+NULL
+    if (der[pos++] !== 0x03) throw new Error('invalid RSA public key DER (bitstring)')
+    var bitLen = readLen()
+    pos++ // 0x00 unused bits
+    if (der[pos++] !== 0x30) throw new Error('invalid RSA public key DER (inner seq)')
+    var innerLen = readLen()
+    if (der[pos++] !== 0x02) throw new Error('invalid RSA public key DER (n)')
+    var nLen = readLen()
+    var nBytes = der.slice(pos, pos + nLen)
+    pos += nLen
+    if (der[pos++] !== 0x02) throw new Error('invalid RSA public key DER (e)')
+    var eLen = readLen()
+    var eBytes = der.slice(pos, pos + eLen)
+    function bytesToBigInt(bytes) {
+      var hex = ''
+      for (var i = 0; i < bytes.length; i++) {
+        hex += (bytes[i] < 16 ? '0' : '') + bytes[i].toString(16)
+      }
+      return BigInt('0x' + (hex.length > 0 ? hex : '0'))
+    }
+    return { n: bytesToBigInt(nBytes), e: bytesToBigInt(eBytes), keyLen: nLen }
+  }
+  function rsaNoPaddingEncrypt(data, pub) {
+    var keyLen = pub.keyLen
+    if (data.length > keyLen) throw new Error('rsa data too long')
+    // 左侧补零为模长（对齐 native NoPadding 行为）
+    var m = 0n
+    for (var i = 0; i < data.length; i++) m = (m << 8n) | BigInt(data[i])
+    var result = m
+    var e = pub.e
+    var mod = pub.n
+    var base = m % mod
+    while (e > 0n) {
+      if (e & 1n) result = (result * base) % mod
+      base = (base * base) % mod
+      e >>= 1n
+    }
+    var hex = result.toString(16)
+    while (hex.length < keyLen * 2) hex = '0' + hex
+    return hexToBytes(hex)
+  }
+
+  // ===== musicInfo 兼容性包装：转为上游 LX.Music.MusicInfo 形状 =====
+  function toScriptMusicInfo(m) {
+    if (m == undefined || typeof m !== 'object') return m
+    var meta = m.meta || {}
+    if (meta.songId != undefined) {
+      m.songmid = meta.songId
+      meta.musicId = meta.songId
+    }
+    if (meta.songmid != undefined) m.songmid = meta.songmid
+    var qs = meta.qualitys || []
+    for (var i = 0; i < qs.length; i++) {
+      if (qs[i] && qs[i].hash != undefined) {
+        m.hash = qs[i].hash
+        break
+      }
+    }
+    m.meta = meta
+    return m
+  }
+
+  // ===== 上游常量（对齐 preload）=====
+  var ALL_SOURCES = ['kw', 'kg', 'tx', 'wy', 'mg', 'local']
+  var SUPPORT_QUALITYS = {
+    kw: ['128k', '320k', 'flac', 'flac24bit'],
+    kg: ['128k', '320k', 'flac', 'flac24bit'],
+    tx: ['128k', '320k', 'flac', 'flac24bit'],
+    wy: ['128k', '320k', 'flac', 'flac24bit'],
+    mg: ['128k', '320k', 'flac', 'flac24bit'],
+    local: []
+  }
+  // 与上游 preload 的差异：在线源放行 lyric（desktop 版行为；本工程 LyricManager 依赖该能力）
+  var SUPPORT_ACTIONS = {
+    kw: ['musicUrl', 'lyric'],
+    kg: ['musicUrl', 'lyric'],
+    tx: ['musicUrl', 'lyric'],
+    wy: ['musicUrl', 'lyric'],
+    mg: ['musicUrl', 'lyric'],
+    local: ['musicUrl', 'lyric', 'pic']
+  }
+  var KEY_PREFIX = {
+    publicKeyStart: '-----BEGIN PUBLIC KEY-----',
+    publicKeyEnd: '-----END PUBLIC KEY-----'
+  }
+
+  function verifyLyricInfo(info) {
+    if (typeof info != 'object' || typeof info.lyric != 'string') throw new Error('failed')
+    if (info.lyric.length > 51200) throw new Error('failed')
+    return {
+      lyric: info.lyric,
+      tlyric: (typeof info.tlyric == 'string' && info.tlyric.length < 5120) ? info.tlyric : null,
+      rlyric: (typeof info.rlyric == 'string' && info.rlyric.length < 5120) ? info.rlyric : null,
+      lxlyric: (typeof info.lxlyric == 'string' && info.lxlyric.length < 8192) ? info.lxlyric : null
+    }
+  }
+
+  // ===== lx 对象构建（每次脚本运行重建）=====
+  var activeCtx = null
+  var pendingHost = {}
+  var hostSeq = 0
+
+  function buildLx(meta) {
+    var runId = Date.now() + '_' + Math.floor(Math.random() * 1000000)
+    var requestHandler = null
+    var isInitedApi = false
+    var isShowedUpdateAlert = false
+
+    var EVENT_NAMES = { request: 'request', inited: 'inited', updateAlert: 'updateAlert' }
+    var eventNames = ['request', 'inited', 'updateAlert']
+    Object.freeze(EVENT_NAMES)
+    var scriptInfo = {
+      name: meta.name || '',
+      description: meta.description || '',
+      version: meta.version || '',
+      author: meta.author || '',
+      homepage: meta.homepage || '',
+      rawScript: meta.rawScript || ''
+    }
+
+    function handleInit(info) {
+      if (!info || typeof info !== 'object') {
+        throw new Error('Missing required parameter init info')
+      }
+      var sourcesOut = {}
+      if (!info.sources || typeof info.sources !== 'object') {
+        throw new Error('Missing required parameter init info sources')
+      }
+      for (var i = 0; i < ALL_SOURCES.length; i++) {
+        var source = ALL_SOURCES[i]
+        var userSource = info.sources[source]
+        if (!userSource || userSource.type !== 'music') continue
+        var qualitys = SUPPORT_QUALITYS[source]
+        var actions = SUPPORT_ACTIONS[source]
+        sourcesOut[source] = {
+          type: 'music',
+          actions: actions.filter(function (a) { return userSource.actions && userSource.actions.includes(a) }),
+          qualitys: qualitys.filter(function (q) { return userSource.qualitys && userSource.qualitys.includes(q) })
+        }
+      }
+      return { sources: sourcesOut }
+    }
+
+    var utils = {
+      crypto: {
+        aesEncrypt: function (buffer, mode, key, iv) {
+          if (mode === 'aes-128-cbc') {
+            return aesEncryptRaw(toU8(buffer), toU8(key), 'aes-128-cbc', toU8(iv))
+          }
+          if (mode === 'aes-128-ecb') {
+            return aesEncryptRaw(toU8(buffer), toU8(key), 'aes-128-ecb', null)
+          }
+          throw new Error('mode not supported: ' + String(mode))
+        },
+        rsaEncrypt: function (buffer, key) {
+          if (typeof key !== 'string') throw new Error('Invalid RSA key')
+          var cleanKey = key.replace(KEY_PREFIX.publicKeyStart, '').replace(KEY_PREFIX.publicKeyEnd, '')
+          return rsaNoPaddingEncrypt(toU8(buffer), parseRsaPublicKey(cleanKey))
+        },
+        randomBytes: function (size) {
+          var out = new Uint8Array(size)
+          crypto.getRandomValues(out)
+          return out
+        },
+        md5: function (data) { return bytesToHex(md5Bytes(toU8(data))) }
+      },
+      buffer: {
+        from: function (data, encoding) { return normalizeBuf(data, encoding) },
+        bufToString: function (buf, format) { return bufToString(buf, format) }
+      }
+    }
+
+    var lx = {
+      version: '2.0.0',
+      env: 'mobile',
+      envParams: {},
+      EVENT_NAMES: EVENT_NAMES,
+      currentScriptInfo: scriptInfo,
+      on: function (event, handler) {
+        return new Promise(function (resolve, reject) {
+          if (!eventNames.includes(event)) return reject(new Error('The event is not supported: ' + String(event)))
+          if (typeof handler !== 'function') return reject(new Error('handler must be a function'))
+          if (event !== 'request') return reject(new Error('The event is not supported: ' + String(event)))
+          requestHandler = handler
+          lxHost.dispatch('event', runId, 'request', '')
+          resolve()
+        })
+      },
+      send: function (event, data) {
+        return new Promise(function (resolve, reject) {
+          if (!eventNames.includes(event)) return reject(new Error('The event is not supported: ' + String(event)))
+          if (event === 'inited') {
+            if (isInitedApi) return reject(new Error('Script is inited'))
+            isInitedApi = true
+            try {
+              var payload = handleInit(data)
+              lxHost.dispatch('send', runId, 'inited', JSON.stringify({ status: true, sources: payload.sources }))
+              resolve()
+            } catch (e) {
+              lxHost.dispatch('send', runId, 'inited', JSON.stringify({ status: false, message: e.message }))
+              resolve()
+            }
+            return
+          }
+          if (event === 'updateAlert') {
+            if (isShowedUpdateAlert) return reject(new Error('The update alert can only be called once.'))
+            isShowedUpdateAlert = true
+            if (!data || typeof data !== 'object' || !data.log || typeof data.log !== 'string') {
+              return reject(new Error('log is required.'))
+            }
+            var log = data.log.length > 1024 ? data.log.substring(0, 1024) + '...' : data.log
+            lxHost.dispatch('send', runId, 'updateAlert', JSON.stringify({ log: log, updateUrl: data.updateUrl }))
+            resolve()
+            return
+          }
+          reject(new Error('Unknown event name: ' + String(event)))
+        })
+      },
+      request: function (url, options, callback) {
+        if (typeof callback !== 'function') throw new TypeError('callback required')
+        var opts = options || {}
+        var cancelled = false
+        var body = opts.body
+        if (body != undefined && typeof body !== 'string') {
+          body = bufToString(body, 'utf8')
+        }
+        var headers = opts.headers || {}
+        if (opts.form) {
+          var parts = []
+          for (var k in opts.form) {
+            parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(String(opts.form[k])))
+          }
+          body = parts.join('&')
+          headers = Object.assign({}, headers, { 'Content-Type': 'application/x-www-form-urlencoded' })
+        }
+        if (opts.formData) throw new Error('formData is not supported in this host')
+        window.__hostCall('request', {
+          url: String(url),
+          method: String(opts.method || 'get').toUpperCase(),
+          headers: headers,
+          body: body == undefined ? '' : body,
+          timeout: typeof opts.timeout === 'number' && opts.timeout > 0 ? Math.min(opts.timeout, 60000) : 15000
+        }).then(function (resp) {
+          if (!cancelled) callback(null, { statusCode: resp.statusCode, statusMessage: '', headers: resp.headers || {} }, resp.body)
+        }).catch(function (err) {
+          if (!cancelled) callback(new Error(err && err.message ? err.message : 'request failed'), null, null)
+        })
+        return function () { cancelled = true }
+      },
+      utils: utils
+    }
+    return { lx: lx, runId: runId, getRequestHandler: function () { return requestHandler } }
+  }
+
+  // ===== 宿主调用桥（JS → ArkTS，异步结果回注）=====
+  window.__hostCall = function (kind, args) {
+    return new Promise(function (resolve, reject) {
+      var id = 'h' + (++hostSeq)
+      pendingHost[id] = { resolve: resolve, reject: reject }
+      lxHost.dispatch('request', id, JSON.stringify({ kind: kind, args: args }), '')
+      setTimeout(function () {
+        if (pendingHost[id] != undefined) {
+          delete pendingHost[id]
+          reject(new Error('host call timeout'))
+        }
+      }, 40000)
+    })
+  }
+  window.__hostResolve = function (callId, ok, valueJson) {
+    var pending = pendingHost[callId]
+    if (pending == undefined) return false
+    delete pendingHost[callId]
+    if (ok) {
+      pending.resolve(JSON.parse(valueJson))
+    } else {
+      pending.reject(new Error(valueJson))
+    }
+    return true
+  }
+
+  // ===== 脚本生命周期入口（由 ArkTS 经 runJavaScript 调用）=====
+  window.__setupLx = function (meta) {
+    activeCtx = buildLx(meta || {})
+    window.lx = activeCtx.lx
+    globalThis.lx = activeCtx.lx
+    return true
+  }
+  window.__resetLx = function () {
+    activeCtx = null
+    window.lx = undefined
+    return true
+  }
+  window.__dispatchRequest = function (callId, paramsJson) {
+    if (activeCtx == undefined || activeCtx.getRequestHandler() == undefined) {
+      lxHost.dispatch('handlerResult', String(callId), '0', 'Request event is not defined')
+      return false
+    }
+    var params = JSON.parse(paramsJson)
+    if (params != undefined && params.info != undefined && params.info.musicInfo != undefined) {
+      params.info.musicInfo = toScriptMusicInfo(params.info.musicInfo)
+    }
+    var handler = activeCtx.getRequestHandler()
+    Promise.resolve()
+      .then(function () { return handler(params) })
+      .then(function (result) {
+        // 结果校验（对齐上游 handleRequest）
+        var action = params != undefined ? params.action : 'musicUrl'
+        if (action === 'musicUrl' || action === 'pic') {
+          if (typeof result !== 'string' || result.length > 2048 || !/^https?:/.test(result)) {
+            throw new Error('failed')
+          }
+          lxHost.dispatch('handlerResult', String(callId), '1', JSON.stringify(result))
+          return
+        }
+        if (action === 'lyric') {
+          lxHost.dispatch('handlerResult', String(callId), '1', JSON.stringify(verifyLyricInfo(result)))
+          return
+        }
+        lxHost.dispatch('handlerResult', String(callId), '1', JSON.stringify(result === undefined ? null : result))
+      })
+      .catch(function (err) {
+        var msg = err instanceof Error ? err.message : (typeof err === 'string' ? err : 'handler error')
+        lxHost.dispatch('handlerResult', String(callId), '0', msg)
+      })
+    return true
+  }
+})()
+</script>
+</body>
+</html>

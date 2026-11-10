@@ -2,15 +2,27 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "module description"
+      "value": "CCMusic HarmonyOS entry module"
     },
     {
       "name": "EntryAbility_desc",
-      "value": "description"
+      "value": "CCMusic main ability"
     },
     {
       "name": "EntryAbility_label",
-      "value": "label"
+      "value": "CC音乐"
+    },
+    {
+      "name": "perm_background",
+      "value": "用于在后台持续播放音乐"
+    },
+    {
+      "name": "perm_internet",
+      "value": "用于在线音源扩展功能联网获取数据"
+    },
+    {
+      "name": "perm_float_window",
+      "value": "用于在桌面显示歌词悬浮窗"
     }
   ]
 }
